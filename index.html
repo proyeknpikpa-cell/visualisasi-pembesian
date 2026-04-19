@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualisasi Jalur Besi Ganda - Spesifikasi D13 & Ø12</title>
+    <title>Visualisasi Jalur Besi Ganda - Penamaan Besi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -20,7 +20,8 @@
             z-index: 10;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        h3 { margin-top: 0; color: #ffcc00; font-size: 1.2em; }
+        h3 { margin-top: 0; margin-bottom: 5px; color: #ffcc00; font-size: 1.2em; }
+        .author { font-size: 0.85em; color: #aaa; margin-bottom: 15px; font-style: italic; border-bottom: 1px solid #444; padding-bottom: 5px; }
         p { font-size: 0.9em; line-height: 1.4; color: #ccc; }
         .legend { margin-top: 15px; font-size: 0.85em; }
         .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
@@ -34,25 +35,26 @@
 <body>
 
 <div id="info-overlay">
-    <h3>Detail Spesifikasi Pembesian</h3>
-    <p>Pembaruan spesifikasi: Besi 2 menggunakan D13 dan Besi 4 menggunakan Besi Polos diameter 12.</p>
+    <h3>Detail Spesifikasi Pembesian (DPT)</h3>
+    <div class="author">Visualisasi Oleh Sofa Rizki</div>
+    <p>Penamaan besi telah diperbarui sesuai instruksi. Visualisasi tetap mempertahankan offset agar tidak tumpang tindih.</p>
     
     <div class="legend">
         <div class="legend-item">
             <span class="dot" style="background: #cc3333;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 3 (Merah):</span> Tulangan Vertikal D16 - Jarak 200mm</div>
+            <div class="spec-text"><span class="spec-label">Besi 3 (Merah):</span> Tulangan Horizontal D16-200</div>
         </div>
         <div class="legend-item">
             <span class="dot" style="background: #555555;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 1 (Abu-abu):</span> Tulangan Horizontal D13 - Jarak 200mm</div>
+            <div class="spec-text"><span class="spec-label">Besi 1 (Abu-abu):</span> D13-200</div>
         </div>
         <div class="legend-item">
             <span class="dot" style="background: #0000ff;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 2 (Biru):</span> Sengkang D13 - Jarak 200mm</div>
+            <div class="spec-text"><span class="spec-label">Besi 2 (Biru):</span> D13-200</div>
         </div>
         <div class="legend-item">
             <span class="dot" style="background: #00ff00;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 4 (Hijau):</span> Besi Polos Ø12 - Jarak 200mm</div>
+            <div class="spec-text"><span class="spec-label">Besi 4 (Hijau):</span> Besi Polos Ø12-200</div>
         </div>
     </div>
     
@@ -64,10 +66,10 @@
     const gridPoints = {};
     const diagonalRebarPoints = []; 
 
-    // Definisi Radius (setengah dari diameter dalam satuan meter/unit simulasi)
+    // Definisi Radius (setengah diameter)
     const R_D16 = 0.016 / 2;
     const R_D13 = 0.013 / 2;
-    const R_P12 = 0.012 / 2; // Besi Polos 12
+    const R_P12 = 0.012 / 2;
 
     function init() {
         scene = new THREE.Scene();
@@ -90,7 +92,7 @@
         
         createGrid(1.5, 1.5, 0.2);
 
-        // --- 1. POSISI BESI 3 MERAH (TIANG VERTIKAL D16) ---
+        // --- 1. BESI 3 MERAH (TULANGAN HORIZONTAL D16 - VERTICAL ELEMENTS) ---
         const barisHuruf = ["H", "G", "F", "E", "D", "C", "B", "A"];
         barisHuruf.forEach(huruf => {
             createExtendingRebarAtPoint(huruf + "8", 1.2, 0xcc3333, R_D16);
@@ -107,20 +109,20 @@
         calculateDiagonalPointsByRow("H7", "A3", barisHuruf);
         createDiagonalRebarsAlongLine(1.2, 0xcc3333, R_D16);
 
-        // --- 2. LOOPING KOMPONEN HORIZONTAL ---
-        const intervalZ = 0.2; // Jarak 200mm
+        // --- 2. LOOPING KOMPONEN HORIZONTAL (Z-AXIS) ---
+        const intervalZ = 0.2; 
         const maxZ = 1.2;
         const jalurBesi1 = ["A5", "A8", "H8", "H7", "A3", "A2"];
         const jalurBesi2 = ["B1", "B8", "A8", "A1", "B1"];
 
         for (let currentZ = 0; currentZ <= maxZ; currentZ += intervalZ) {
-            // Besi 1 (Abu-abu) D13
+            // Besi 1 (Abu-abu) D13-200
             createRebar(jalurBesi1, 0x555555, currentZ, R_D13);
             
-            // Besi 2 (Biru) SEKARANG D13 - Offset bawah
+            // Besi 2 (Biru) D13-200 (Offset Z sedikit agar tidak overlap visual)
             createRebar(jalurBesi2, 0x0000ff, currentZ - 0.02, R_D13);
             
-            // Besi 4 (Hijau) SEKARANG POLOS 12 - Offset atas
+            // Besi 4 (Hijau) Polos Ø12-200 (Offset Z sedikit)
             const offsetZ4 = currentZ + 0.02;
             const barisBesi4 = ["H", "G", "F", "E", "D", "C"];
             barisBesi4.forEach(huruf => {
@@ -137,10 +139,10 @@
     }
 
     function addFloatingLabels() {
-        createLabel(1.6, 1.5, 0.6, "VERT: D16-200", 0.9, 0xff0000, 28);
-        createLabel(1.6, 1.4, 0.6, "HORZ (B1): D13-200", 0.8, 0xaaaaaa, 24);
-        createLabel(1.6, 1.3, 0.6, "SENGKANG (B2): D13-200", 0.8, 0x5555ff, 24);
-        createLabel(1.6, 1.2, 0.6, "TIE (B4): P12-200", 0.8, 0x00ff00, 24);
+        createLabel(1.6, 1.5, 0.6, "B3: D16-200", 0.9, 0xff0000, 28);
+        createLabel(1.6, 1.4, 0.6, "B1: D13-200", 0.8, 0xaaaaaa, 24);
+        createLabel(1.6, 1.3, 0.6, "B2: D13-200", 0.8, 0x5555ff, 24);
+        createLabel(1.6, 1.2, 0.6, "B4: Ø12-200", 0.8, 0x00ff00, 24);
     }
 
     function calculateDiagonalPointsByRow(startName, endName, rows) {
