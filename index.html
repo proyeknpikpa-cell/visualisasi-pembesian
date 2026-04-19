@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Jalur Besi Ganda - Spesifikasi D13 & Ø12</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; }
+        #info-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 380px;
+            border-left: 4px solid #ffcc00;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        h3 { margin-top: 0; color: #ffcc00; font-size: 1.2em; }
+        p { font-size: 0.9em; line-height: 1.4; color: #ccc; }
+        .legend { margin-top: 15px; font-size: 0.85em; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; flex-shrink: 0; }
+        .spec-text { color: #eee; }
+        .spec-label { font-weight: bold; color: #fff; display: block; }
+        button { background: #ffcc00; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; color: #1a1a1a; margin-top: 15px; width: 100%; transition: background 0.3s; }
+        button:hover { background: #e6b800; }
+    </style>
+</head>
+<body>
+
+<div id="info-overlay">
+    <h3>Detail Spesifikasi Pembesian</h3>
+    <p>Pembaruan spesifikasi: Besi 2 menggunakan D13 dan Besi 4 menggunakan Besi Polos diameter 12.</p>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <span class="dot" style="background: #cc3333;"></span> 
+            <div class="spec-text"><span class="spec-label">Besi 3 (Merah):</span> Tulangan Vertikal D16 - Jarak 200mm</div>
+        </div>
+        <div class="legend-item">
+            <span class="dot" style="background: #555555;"></span> 
+            <div class="spec-text"><span class="spec-label">Besi 1 (Abu-abu):</span> Tulangan Horizontal D13 - Jarak 200mm</div>
+        </div>
+        <div class="legend-item">
+            <span class="dot" style="background: #0000ff;"></span> 
+            <div class="spec-text"><span class="spec-label">Besi 2 (Biru):</span> Sengkang D13 - Jarak 200mm</div>
+        </div>
+        <div class="legend-item">
+            <span class="dot" style="background: #00ff00;"></span> 
+            <div class="spec-text"><span class="spec-label">Besi 4 (Hijau):</span> Besi Polos Ø12 - Jarak 200mm</div>
+        </div>
+    </div>
+    
+    <button onclick="controls.reset()">Reset Pandangan Kamera</button>
+</div>
+
+<script>
+    let scene, camera, renderer, controls;
+    const gridPoints = {};
+    const diagonalRebarPoints = []; 
+
+    // Definisi Radius (setengah dari diameter dalam satuan meter/unit simulasi)
+    const R_D16 = 0.016 / 2;
+    const R_D13 = 0.013 / 2;
+    const R_P12 = 0.012 / 2; // Besi Polos 12
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(2.5, 2.5, 4); 
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0.75, 0.75, 0.6); 
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const light = new THREE.PointLight(0xffffff, 1);
+        light.position.set(5, 5, 5);
+        scene.add(light);
+        
+        createGrid(1.5, 1.5, 0.2);
+
+        // --- 1. POSISI BESI 3 MERAH (TIANG VERTIKAL D16) ---
+        const barisHuruf = ["H", "G", "F", "E", "D", "C", "B", "A"];
+        barisHuruf.forEach(huruf => {
+            createExtendingRebarAtPoint(huruf + "8", 1.2, 0xcc3333, R_D16);
+        });
+
+        const tambahanBesi3 = [
+            "A1", "A2", "A4", "A5", "A6", "A7",
+            "B1", "B2", "B3", "B4", "B5", "B6", "B7"
+        ];
+        tambahanBesi3.forEach(titik => {
+            createExtendingRebarAtPoint(titik, 1.2, 0xcc3333, R_D16);
+        });
+
+        calculateDiagonalPointsByRow("H7", "A3", barisHuruf);
+        createDiagonalRebarsAlongLine(1.2, 0xcc3333, R_D16);
+
+        // --- 2. LOOPING KOMPONEN HORIZONTAL ---
+        const intervalZ = 0.2; // Jarak 200mm
+        const maxZ = 1.2;
+        const jalurBesi1 = ["A5", "A8", "H8", "H7", "A3", "A2"];
+        const jalurBesi2 = ["B1", "B8", "A8", "A1", "B1"];
+
+        for (let currentZ = 0; currentZ <= maxZ; currentZ += intervalZ) {
+            // Besi 1 (Abu-abu) D13
+            createRebar(jalurBesi1, 0x555555, currentZ, R_D13);
+            
+            // Besi 2 (Biru) SEKARANG D13 - Offset bawah
+            createRebar(jalurBesi2, 0x0000ff, currentZ - 0.02, R_D13);
+            
+            // Besi 4 (Hijau) SEKARANG POLOS 12 - Offset atas
+            const offsetZ4 = currentZ + 0.02;
+            const barisBesi4 = ["H", "G", "F", "E", "D", "C"];
+            barisBesi4.forEach(huruf => {
+                const startPoint = gridPoints[huruf + "8"]; 
+                const endPoint = diagonalRebarPoints.find(dp => Math.abs(dp.y - startPoint.y) < 0.01);
+                if (startPoint && endPoint) {
+                    drawBesi4Line(startPoint, endPoint, offsetZ4, R_P12);
+                }
+            });
+        }
+
+        addFloatingLabels();
+        animate();
+    }
+
+    function addFloatingLabels() {
+        createLabel(1.6, 1.5, 0.6, "VERT: D16-200", 0.9, 0xff0000, 28);
+        createLabel(1.6, 1.4, 0.6, "HORZ (B1): D13-200", 0.8, 0xaaaaaa, 24);
+        createLabel(1.6, 1.3, 0.6, "SENGKANG (B2): D13-200", 0.8, 0x5555ff, 24);
+        createLabel(1.6, 1.2, 0.6, "TIE (B4): P12-200", 0.8, 0x00ff00, 24);
+    }
+
+    function calculateDiagonalPointsByRow(startName, endName, rows) {
+        const start = gridPoints[startName];
+        const end = gridPoints[endName];
+        if (!start || !end) return;
+        rows.forEach(huruf => {
+            const rowY = gridPoints[huruf + "1"].y;
+            const t = (rowY - start.y) / (end.y - start.y);
+            if (t >= -0.001 && t <= 1.001) {
+                const rowX = start.x + t * (end.x - start.x);
+                diagonalRebarPoints.push(new THREE.Vector3(rowX, rowY, 0));
+            }
+        });
+    }
+
+    function drawBesi4Line(p1_base, p2_base, z, radius) {
+        const p1 = p1_base.clone().setZ(z);
+        const p2 = p2_base.clone().setZ(z);
+        const curve = new THREE.LineCurve3(p1, p2);
+        const tubeGeo = new THREE.TubeGeometry(curve, 10, radius, 8, false);
+        const tubeMat = new THREE.MeshPhongMaterial({ color: 0x00ff00 }); 
+        scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+    }
+
+    function createDiagonalRebarsAlongLine(length, rebarColor, radius) {
+        diagonalRebarPoints.forEach(pos => {
+            const endPos = pos.clone().setZ(pos.z + length);
+            const curve = new THREE.LineCurve3(pos, endPos);
+            const tubeGeo = new THREE.TubeGeometry(curve, 10, radius, 8, false);
+            const tubeMat = new THREE.MeshPhongMaterial({ color: rebarColor });
+            scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+        });
+    }
+
+    function createGrid(width, height, interval) {
+        const letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+        let rowIdx = 0;
+        for (let y = 0; y <= height; y += interval) {
+            let colIdx = 1;
+            for (let x = 0; x <= width; x += interval) {
+                const posX = parseFloat(x.toFixed(2));
+                const posY = parseFloat(y.toFixed(2));
+                const pointName = letters[rowIdx] + colIdx;
+                gridPoints[pointName] = new THREE.Vector3(posX, posY, 0);
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.005), new THREE.MeshBasicMaterial({ color: 0x333333 }));
+                sphere.position.set(posX, posY, 0);
+                scene.add(sphere);
+                createLabel(posX, posY, 0.05, pointName, 0.3, 0xffffff, 24);
+                colIdx++;
+            }
+            rowIdx++;
+        }
+    }
+
+    function createRebar(names, rebarColor, offsetZ = 0, radius = 0.006) {
+        const points = names.map(name => {
+            if (!gridPoints[name]) return null;
+            const p = gridPoints[name].clone();
+            p.z += offsetZ; 
+            return p;
+        }).filter(p => p !== null);
+        if (points.length < 2) return;
+        const curvePath = new THREE.CurvePath();
+        for (let i = 0; i < points.length - 1; i++) {
+            curvePath.add(new THREE.LineCurve3(points[i], points[i+1]));
+        }
+        const tubeGeo = new THREE.TubeGeometry(curvePath, 64, radius, 8, false);
+        const tubeMat = new THREE.MeshPhongMaterial({ color: rebarColor, shininess: 30 });
+        scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+    }
+
+    function createExtendingRebarAtPoint(startPointName, length, rebarColor, radius) {
+        if (!gridPoints[startPointName]) return;
+        const startPos = gridPoints[startPointName].clone();
+        const endPos = startPos.clone().setZ(startPos.z + length);
+        const curve = new THREE.LineCurve3(startPos, endPos);
+        const tubeGeo = new THREE.TubeGeometry(curve, 10, radius, 8, false);
+        const tubeMat = new THREE.MeshPhongMaterial({ color: rebarColor });
+        scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+    }
+
+    function createLabel(x, y, z, text, opacity, colorHex, fontSize) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 256; canvas.height = 128;
+        const color = new THREE.Color(colorHex);
+        context.fillStyle = `rgba(${Math.floor(color.r*255)}, ${Math.floor(color.g*255)}, ${Math.floor(color.b*255)}, ${opacity})`;
+        context.font = `Bold ${fontSize}px Arial`;
+        context.textAlign = "center";
+        context.fillText(text, 128, 80);
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.position.set(x, y, z); 
+        sprite.scale.set(0.4, 0.2, 0.4);
+        scene.add(sprite);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
