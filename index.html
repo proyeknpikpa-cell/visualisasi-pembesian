@@ -3,133 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualisasi Jalur Besi Ganda - Penamaan Besi</title>
+    <title>Visualisasi Jalur Besi Ganda - Animasi Tumbuh</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Menambahkan GSAP untuk animasi yang halus -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; }
+        
         #info-overlay {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.85);
-            padding: 20px;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
             border-radius: 8px;
-            max-width: 380px;
+            max-width: 300px;
             border-left: 4px solid #ffcc00;
-            z-index: 10;
+            z-index: 100;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        h3 { margin-top: 0; margin-bottom: 5px; color: #ffcc00; font-size: 1.2em; }
-        .author { font-size: 0.85em; color: #aaa; margin-bottom: 15px; font-style: italic; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        p { font-size: 0.9em; line-height: 1.4; color: #ccc; }
-        .legend { margin-top: 15px; font-size: 0.85em; }
-        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
-        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; flex-shrink: 0; }
-        .spec-text { color: #eee; }
-        .spec-label { font-weight: bold; color: #fff; display: block; }
-        button { background: #ffcc00; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; color: #1a1a1a; margin-top: 15px; width: 100%; transition: background 0.3s; }
-        button:hover { background: #e6b800; }
+
+        #info-overlay.collapsed { transform: translateX(-110%); }
+
+        #toggle-menu-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 101;
+            background: #ffcc00;
+            color: #1a1a1a;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+
+        h3 { margin-top: 0; margin-bottom: 5px; color: #ffcc00; font-size: 1.1em; }
+        .author { font-size: 0.8em; color: #aaa; margin-bottom: 10px; font-style: italic; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        
+        .controls-group { margin-top: 15px; display: flex; flex-direction: column; gap: 6px; }
+        
+        button.action-btn { 
+            background: #333; 
+            border: 1px solid #555; 
+            padding: 8px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            color: white; 
+            font-size: 0.75em;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        button.action-btn.active { border-left: 4px solid #00ff00; }
+        button.action-btn.inactive { opacity: 0.5; border-left: 4px solid #ff3333; }
+        
+        button.master-btn {
+            background: #ffcc00;
+            color: #000;
+            margin-top: 5px;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .close-panel { float: right; cursor: pointer; color: #ffcc00; font-weight: bold; font-size: 1.2em; }
+
+        @media (max-width: 600px) {
+            #info-overlay { width: 85%; max-width: 260px; }
+        }
     </style>
 </head>
 <body>
 
+<button id="toggle-menu-btn" onclick="toggleMenu()">Buka Menu</button>
+
 <div id="info-overlay">
-    <h3>Detail Spesifikasi Pembesian (DPT)</h3>
+    <span class="close-panel" onclick="toggleMenu()">×</span>
+    <h3>Detail Pembesian (DPT)</h3>
     <div class="author">Visualisasi Oleh Sofa Rizki</div>
-    <p>Penamaan besi telah diperbarui sesuai instruksi. Visualisasi tetap mempertahankan offset agar tidak tumpang tindih.</p>
     
-    <div class="legend">
-        <div class="legend-item">
-            <span class="dot" style="background: #cc3333;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 3 (Merah):</span> Tulangan Horizontal D16-200</div>
-        </div>
-        <div class="legend-item">
-            <span class="dot" style="background: #555555;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 1 (Abu-abu):</span> D13-200</div>
-        </div>
-        <div class="legend-item">
-            <span class="dot" style="background: #0000ff;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 2 (Biru):</span> D13-200</div>
-        </div>
-        <div class="legend-item">
-            <span class="dot" style="background: #00ff00;"></span> 
-            <div class="spec-text"><span class="spec-label">Besi 4 (Hijau):</span> Besi Polos Ø12-200</div>
-        </div>
+    <div class="controls-group">
+        <button class="action-btn master-btn" onclick="toggleAllBesi()">Sembunyi/Tampilkan Semua</button>
+        
+        <button id="btn-b1" class="action-btn active" onclick="toggleLayer('b1')">
+            <span><span class="dot" style="background: #555555; height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px;"></span> Besi 1: D13-200</span>
+        </button>
+        
+        <button id="btn-b2" class="action-btn active" onclick="toggleLayer('b2')">
+            <span><span class="dot" style="background: #0000ff; height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px;"></span> Besi 2: D13-200</span>
+        </button>
+        
+        <button id="btn-b3" class="action-btn active" onclick="toggleLayer('b3')">
+            <span><span class="dot" style="background: #cc3333; height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px;"></span> Besi 3: D16-200</span>
+        </button>
+        
+        <button id="btn-b4" class="action-btn active" onclick="toggleLayer('b4')">
+            <span><span class="dot" style="background: #00ff00; height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px;"></span> Besi 4: Ø12-200 <small>(OPSIONAL)</small></span>
+        </button>
+
+        <button class="action-btn" onclick="controls.reset()" style="text-align: center; justify-content: center; margin-top: 10px; background: transparent;">Reset Kamera</button>
     </div>
-    
-    <button onclick="controls.reset()">Reset Pandangan Kamera</button>
 </div>
 
 <script>
     let scene, camera, renderer, controls;
     const gridPoints = {};
     const diagonalRebarPoints = []; 
+    
+    const rebarGroups = {
+        b1: [],
+        b2: [],
+        b3: [],
+        b4: []
+    };
 
-    // Definisi Radius (setengah diameter)
+    let allVisible = true;
+
     const R_D16 = 0.016 / 2;
     const R_D13 = 0.013 / 2;
     const R_P12 = 0.012 / 2;
+    const MAX_HEIGHT_VISUAL = 3.2; 
 
     function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111111);
 
         camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(2.5, 2.5, 4); 
+        camera.position.set(3, 3, 5); 
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0.75, 0.75, 0.6); 
+        controls.target.set(0.75, 0.75, 1.5); 
         
         scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const light = new THREE.PointLight(0xffffff, 1);
-        light.position.set(5, 5, 5);
+        light.position.set(5, 5, 10);
         scene.add(light);
         
         createGrid(1.5, 1.5, 0.2);
 
-        // --- 1. BESI 3 MERAH (TULANGAN HORIZONTAL D16 - VERTICAL ELEMENTS) ---
         const barisHuruf = ["H", "G", "F", "E", "D", "C", "B", "A"];
+        
+        // --- GRUP BESI 3 (MERAH) ---
         barisHuruf.forEach(huruf => {
-            createExtendingRebarAtPoint(huruf + "8", 1.2, 0xcc3333, R_D16);
+            const mesh = createExtendingRebarAtPoint(huruf + "8", MAX_HEIGHT_VISUAL, 0xcc3333, R_D16);
+            if(mesh) rebarGroups.b3.push(mesh);
         });
 
-        const tambahanBesi3 = [
-            "A1", "A2", "A4", "A5", "A6", "A7",
-            "B1", "B2", "B3", "B4", "B5", "B6", "B7"
-        ];
+        const tambahanBesi3 = ["A1", "A2", "A4", "A5", "A6", "A7", "B1", "B2", "B3", "B4", "B5", "B6", "B7"];
         tambahanBesi3.forEach(titik => {
-            createExtendingRebarAtPoint(titik, 1.2, 0xcc3333, R_D16);
+            const mesh = createExtendingRebarAtPoint(titik, MAX_HEIGHT_VISUAL, 0xcc3333, R_D16);
+            if(mesh) rebarGroups.b3.push(mesh);
         });
 
         calculateDiagonalPointsByRow("H7", "A3", barisHuruf);
-        createDiagonalRebarsAlongLine(1.2, 0xcc3333, R_D16);
+        const diagMeshes = createDiagonalRebarsAlongLine(MAX_HEIGHT_VISUAL, 0xcc3333, R_D16);
+        rebarGroups.b3.push(...diagMeshes);
 
-        // --- 2. LOOPING KOMPONEN HORIZONTAL (Z-AXIS) ---
+        // --- LOOPING BESI 1, 2, 4 ---
         const intervalZ = 0.2; 
-        const maxZ = 1.2;
-        const jalurBesi1 = ["A5", "A8", "H8", "H7", "A3", "A2"];
+        const jalurBesi1 = ["A8", "H8", "H7", "A3", "A8"];
         const jalurBesi2 = ["B1", "B8", "A8", "A1", "B1"];
 
-        for (let currentZ = 0; currentZ <= maxZ; currentZ += intervalZ) {
-            // Besi 1 (Abu-abu) D13-200
-            createRebar(jalurBesi1, 0x555555, currentZ, R_D13);
+        for (let currentZ = 0; currentZ <= MAX_HEIGHT_VISUAL; currentZ += intervalZ) {
+            const m1 = createRebar(jalurBesi1, 0x555555, currentZ, R_D13);
+            if(m1) rebarGroups.b1.push(m1);
+
+            const m2 = createRebar(jalurBesi2, 0x0000ff, currentZ - 0.02, R_D13);
+            if(m2) rebarGroups.b2.push(m2);
             
-            // Besi 2 (Biru) D13-200 (Offset Z sedikit agar tidak overlap visual)
-            createRebar(jalurBesi2, 0x0000ff, currentZ - 0.02, R_D13);
-            
-            // Besi 4 (Hijau) Polos Ø12-200 (Offset Z sedikit)
             const offsetZ4 = currentZ + 0.02;
             const barisBesi4 = ["H", "G", "F", "E", "D", "C"];
             barisBesi4.forEach(huruf => {
                 const startPoint = gridPoints[huruf + "8"]; 
                 const endPoint = diagonalRebarPoints.find(dp => Math.abs(dp.y - startPoint.y) < 0.01);
                 if (startPoint && endPoint) {
-                    drawBesi4Line(startPoint, endPoint, offsetZ4, R_P12);
+                    const m4 = drawBesi4Line(startPoint, endPoint, offsetZ4, R_P12);
+                    rebarGroups.b4.push(m4);
                 }
             });
         }
@@ -138,11 +200,87 @@
         animate();
     }
 
+    /**
+     * FUNGSI ANIMASI BARU
+     * Menggunakan GSAP untuk menskalakan besi dari 0 ke 1 secara bertahap (stagger)
+     */
+    function toggleLayer(key) {
+        const btn = document.getElementById(`btn-${key}`);
+        const isActive = btn.classList.contains('active');
+        const targetScale = isActive ? 0 : 1;
+        
+        // Update UI Button
+        if (isActive) {
+            btn.classList.remove('active');
+            btn.classList.add('inactive');
+        } else {
+            btn.classList.remove('inactive');
+            btn.classList.add('active');
+            // Pastikan mesh visible sebelum di-animasi tumbuh
+            rebarGroups[key].forEach(m => m.visible = true);
+        }
+
+        // Animasi GSAP
+        gsap.to(rebarGroups[key].map(m => m.scale), {
+            x: targetScale,
+            y: targetScale,
+            z: targetScale,
+            duration: 0.8,
+            stagger: 0.01, // Efek sekuensial (satu per satu tumbuh)
+            ease: "back.out(1.7)", // Efek sedikit membal di akhir
+            onComplete: () => {
+                if (targetScale === 0) {
+                    rebarGroups[key].forEach(m => m.visible = false);
+                }
+            }
+        });
+    }
+
+    function toggleAllBesi() {
+        allVisible = !allVisible;
+        const keys = ['b1', 'b2', 'b3', 'b4'];
+        keys.forEach(key => {
+            const btn = document.getElementById(`btn-${key}`);
+            const targetScale = allVisible ? 1 : 0;
+
+            if (allVisible) {
+                btn.classList.add('active');
+                btn.classList.remove('inactive');
+                rebarGroups[key].forEach(m => m.visible = true);
+            } else {
+                btn.classList.remove('active');
+                btn.classList.add('inactive');
+            }
+
+            gsap.to(rebarGroups[key].map(m => m.scale), {
+                x: targetScale, y: targetScale, z: targetScale,
+                duration: 0.6,
+                stagger: 0.005,
+                onComplete: () => {
+                    if (!allVisible) rebarGroups[key].forEach(m => m.visible = false);
+                }
+            });
+        });
+    }
+
+    function toggleMenu() {
+        const overlay = document.getElementById('info-overlay');
+        const toggleBtn = document.getElementById('toggle-menu-btn');
+        if (overlay.classList.contains('collapsed')) {
+            overlay.classList.remove('collapsed');
+            toggleBtn.style.display = 'none';
+        } else {
+            overlay.classList.add('collapsed');
+            toggleBtn.style.display = 'block';
+        }
+    }
+
     function addFloatingLabels() {
-        createLabel(1.6, 1.5, 0.6, "B3: D16-200", 0.9, 0xff0000, 28);
-        createLabel(1.6, 1.4, 0.6, "B1: D13-200", 0.8, 0xaaaaaa, 24);
-        createLabel(1.6, 1.3, 0.6, "B2: D13-200", 0.8, 0x5555ff, 24);
-        createLabel(1.6, 1.2, 0.6, "B4: Ø12-200", 0.8, 0x00ff00, 24);
+        const midZ = MAX_HEIGHT_VISUAL / 2;
+        createLabel(1.6, 1.5, midZ + 0.2, "B3: D16-200", 0.9, 0xff0000, 28);
+        createLabel(1.6, 1.4, midZ, "B1: D13-200", 0.8, 0xaaaaaa, 24);
+        createLabel(1.6, 1.3, midZ - 0.2, "B2: D13-200", 0.8, 0x5555ff, 24);
+        createLabel(0.3, 1.3, midZ, "B4: Ø12 (OPSIONAL)", 0.8, 0x00ff00, 22);
     }
 
     function calculateDiagonalPointsByRow(startName, endName, rows) {
@@ -165,17 +303,23 @@
         const curve = new THREE.LineCurve3(p1, p2);
         const tubeGeo = new THREE.TubeGeometry(curve, 10, radius, 8, false);
         const tubeMat = new THREE.MeshPhongMaterial({ color: 0x00ff00 }); 
-        scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+        const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+        scene.add(mesh);
+        return mesh;
     }
 
     function createDiagonalRebarsAlongLine(length, rebarColor, radius) {
+        const meshes = [];
         diagonalRebarPoints.forEach(pos => {
             const endPos = pos.clone().setZ(pos.z + length);
             const curve = new THREE.LineCurve3(pos, endPos);
             const tubeGeo = new THREE.TubeGeometry(curve, 10, radius, 8, false);
             const tubeMat = new THREE.MeshPhongMaterial({ color: rebarColor });
-            scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+            const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+            scene.add(mesh);
+            meshes.push(mesh);
         });
+        return meshes;
     }
 
     function createGrid(width, height, interval) {
@@ -205,24 +349,28 @@
             p.z += offsetZ; 
             return p;
         }).filter(p => p !== null);
-        if (points.length < 2) return;
+        if (points.length < 2) return null;
         const curvePath = new THREE.CurvePath();
         for (let i = 0; i < points.length - 1; i++) {
             curvePath.add(new THREE.LineCurve3(points[i], points[i+1]));
         }
         const tubeGeo = new THREE.TubeGeometry(curvePath, 64, radius, 8, false);
         const tubeMat = new THREE.MeshPhongMaterial({ color: rebarColor, shininess: 30 });
-        scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+        const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+        scene.add(mesh);
+        return mesh;
     }
 
     function createExtendingRebarAtPoint(startPointName, length, rebarColor, radius) {
-        if (!gridPoints[startPointName]) return;
+        if (!gridPoints[startPointName]) return null;
         const startPos = gridPoints[startPointName].clone();
         const endPos = startPos.clone().setZ(startPos.z + length);
         const curve = new THREE.LineCurve3(startPos, endPos);
         const tubeGeo = new THREE.TubeGeometry(curve, 10, radius, 8, false);
         const tubeMat = new THREE.MeshPhongMaterial({ color: rebarColor });
-        scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+        const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+        scene.add(mesh);
+        return mesh;
     }
 
     function createLabel(x, y, z, text, opacity, colorHex, fontSize) {
